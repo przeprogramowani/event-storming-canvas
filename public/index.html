@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Event Storming Board</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="toolbar">
+      <div class="row top">
+        <div class="brand">
+          <span class="dot"></span>
+          <div>
+            <h1 id="board-title">Event Storming</h1>
+            <div class="phasebar">
+              <select id="phase" title="Workshop phase"></select>
+              <span id="phase-hint" class="muted"></span>
+            </div>
+          </div>
+        </div>
+        <div class="status">
+          <span id="conn" class="badge">connecting…</span>
+          <span id="saved" class="muted"></span>
+          <button id="delete-btn" disabled>Delete</button>
+        </div>
+      </div>
+      <div class="row tools" id="tools"></div>
+    </header>
+
+    <main id="board" class="board">
+      <div id="lanes" class="lanes"></div>
+    </main>
+
+    <footer class="hint">
+      <div id="legend" class="legend"></div>
+      <div class="method">
+        Drag to place · double-click to edit · Backspace deletes. The AI
+        moderator edits <code>board.json</code> and the board updates live.
+      </div>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
