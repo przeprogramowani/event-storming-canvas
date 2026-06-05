@@ -138,3 +138,16 @@ przeglądarka ──────────────▶ board.json ───
 
 Sesje są **bezstanowe** — każdy warsztat zaczyna się od pustej tablicy
 startowej. Nie ma bazy danych ani historii: tablica to cały stan.
+
+## Źródła i podziękowania
+
+Event Storming to technika warsztatowa stworzona przez **Alberto Brandoliniego**
+([@ziobrando](https://twitter.com/ziobrando)). To narzędzie odwzorowuje jego
+wizualny język (kolory ról, pasy, oś czasu) — cała zasługa za samą metodę należy
+do niego.
+
+- Wprowadzenie do metody: <https://www.eventstorming.com>
+- Książka „Introducing EventStorming" (Leanpub): <https://leanpub.com/introducing_eventstorming>
+
+Ten projekt to materiał dydaktyczny kursu **10xDevs 3.0 — AI-Native Software
+Development**, niezwiązany oficjalnie z autorem metody.
