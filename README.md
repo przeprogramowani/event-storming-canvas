@@ -1,5 +1,7 @@
 # Event Storming Board 🟧🟦🟪
 
+![Tablica Event Storming](docs/board.png)
+
 Małe, **żywe narzędzie do Event Stormingu**, stworzone na potrzeby kursu
 **10xDevs 3.0 — AI-Native Software Development**. Człowiek prowadzi warsztat
 w przeglądarce, a **agent AID (Claude) współmoderuje** sesję, edytując plik
@@ -10,10 +12,7 @@ budowania, bez zależności — czysty Node.js i kilka plików w `public/`.
 > źródło prawdy, który równolegle edytują człowiek i agent, a interfejs reaguje
 > na zmiany na żywo.
 
-## Zrzut ekranu
 
-<!-- TODO: podmień na prawdziwy zrzut ekranu tablicy. Wrzuć obrazek do docs/screenshot.png -->
-![Tablica Event Storming](docs/screenshot.png)
 
 ## Po co to jest
 
