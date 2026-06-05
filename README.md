@@ -151,3 +151,7 @@ do niego.
 
 Ten projekt to materiał dydaktyczny kursu **10xDevs 3.0 — AI-Native Software
 Development**, niezwiązany oficjalnie z autorem metody.
+
+## Licencja
+
+Kod udostępniony na licencji [MIT](LICENSE).
