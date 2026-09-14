@@ -1,154 +1,158 @@
-# Event Storming Board — Project & Agent Guide
+# Event Storming Board — Project & Moderator Guide
 
-This repo is a **live Event Storming workshop tool**. A human facilitates in the
-browser; **you (Claude) act as the Event Storming moderator** by editing
-`board.json`. The browser re-renders the board instantly on every file change.
+This is a local workshop tool. Participants bring domain knowledge; the agent
+helps them discover, structure and question it. Use `board.json` as the persisted
+artifact, and the revision-checked API as the only write path during live work.
+`CLAUDE.md` is a symlink to this file.
 
-> `CLAUDE.md` is a symlink to this file for tools that look for that name.
+## Start or resume
 
----
+- Read the current board. **Resume by default. Never reset simply because a new
+  chat or agent session started.** A code review or implementation task is not a
+  workshop kickoff. When discussing the workshop application, remain at the product
+  level: do not ask for a workshop domain or start facilitation unless requested.
+- For an explicitly requested new workshop, archive the existing board first
+  (`archive: true` in the API request, or the browser's New workshop action).
+- Establish purpose, scope and relevant participants. The human controls domain
+  decisions and workshop advancement. Ask one focused question at a time.
+- Invite independent contributions before assembling an authoritative story.
+  When examples help, offer 2–4 suggestions and mark them `status: "suggested"`,
+  `source: "AI"`. Do not confirm an AI suggestion without participant evidence.
+- Preserve disagreements, uncertainty and alternative explanations. Do not turn
+  absence of knowledge into invented business rules.
 
-## 1. Architecture
+## Safe live edits
 
-```
-        POST /api/board                 fs.watch + SSE
-browser ───────────────▶ board.json ──────────────────▶ browser(s)
-                            ▲
-        you edit the file ──┘
-```
+Run with Node 24 LTS: `npm start`, open `http://127.0.0.1:4000`.
+The server binds only to loopback; it is not an authenticated remote service.
+Use one server per board on one configured port. There are no persistent lock
+files; repeated startup reuses the existing URL. Do not run the same board on
+multiple ports, because those processes would bypass single-writer coordination.
 
-- `server.js` — zero-dependency Node HTTP server. Serves `public/`, exposes
-  `GET/POST /api/board` and an SSE stream at `/api/stream`, and `fs.watch`es
-  `board.json`, pushing every change to all connected browsers.
-- `board.json` — **the single source of truth.** Both writers touch it: the
-  human (browser → POST) and you (editing the file directly).
-- `public/` — the client. `app.js` holds the Event Storming model (roles, lanes,
-  phases); `style.css` the visuals; `index.html` the shell.
+1. Read a fresh envelope into a new temporary draft:
+   `node scripts/board.js get /tmp/workshop-draft.json`
+2. Edit only its `board` property. Preserve its original `revision`, unrelated
+   fields, item IDs, participant wording and positions. The draft contains
+   `{board, revision, sequence, instance, warning}`.
+3. Commit: `node scripts/board.js put /tmp/workshop-draft.json`.
+4. On HTTP 409, retain the draft, read a fresh envelope to a different file,
+   compare changes, and reapply only noncompeting intended edits. Ask the human
+   about competing domain edits. **Never replace a stale draft's revision with
+   the newest revision merely to force a write.**
+5. Report what changed and ask the next focused workshop question.
 
-Run with `node server.js`, open `http://localhost:4000`.
+The CLI also supports `history` and `restore request.json`; restore requires
+`name` and `expectedRevision`. Ask before replacing shared work. Both new
+workshop and restore archive the prior valid board.
 
-**The board is the only state.** There is no database and no session history —
-see §5.
+Direct `board.json` editing is supported for **offline editing only**, with the
+server stopped. Legacy live disk changes are detected and validated but cannot
+participate in the write lock; they are not safe concurrent edits. Reading a
+file before writing does not prevent a race with another writer.
 
----
+## Artifact schema
 
-## 2. `board.json` schema
+`public/model.js` is the shared vocabulary, validation and merge implementation.
+The legacy board schema remains readable, with a purpose inferred in memory.
+Existing IDs and positions are preserved. Never hand-set `updatedAt`.
+`workshopId` identifies the workshop across revisions. Preserve it while editing;
+use a new UUID when explicitly starting a new domain workshop. Legacy boards
+receive `legacy` in memory. The browser's New workshop action handles this.
 
-```jsonc
+```json
 {
-  "title": "Event Storming — Checkout",   // shown in the header
-  "phase": "chaotic-exploration",         // current workshop phase (see §4)
+  "title": "Event Storming — Checkout",
+  "purpose": "big-picture",
+  "phase": "chaotic-exploration",
+  "notes": "Scope, participants, decisions, assumptions, owners and next steps",
   "items": [
-    { "id": "evt-1", "role": "event", "text": "Order Placed", "x": 320, "y": 330 }
+    { "id": "evt-unique-id", "role": "event", "text": "Order placed", "x": 320, "y": 330,
+      "status": "suggested", "source": "AI" }
   ]
 }
 ```
 
-Every item:
+Items require unique stable `id`, known `role`, string `text`, finite nonnegative
+`x` and `y`. Optional fields: `width`, `height`, `fontSize` (annotations), legacy
+hex `color`, `status` (`suggested`/`confirmed`), `source`, `priority`
+(`high`/`medium`/`low`), `owner`, `nextStep`, `invariant`, `termination`, `frameId`.
+Missing status means unreviewed, not confirmed. Keep role colors intact.
 
-| field            | required | notes                                                            |
-| ---------------- | -------- | ---------------------------------------------------------------- |
-| `id`             | yes      | unique, stable. Convention: `<role>-<n>` e.g. `evt-7`, `cmd-3`.  |
-| `role`           | yes      | one of the roles in §3 (or `label`).                             |
-| `text`           | yes      | the sticky's words.                                              |
-| `x`, `y`         | yes      | pixels from board top-left. `x` = time, `y` = lane (see §3).     |
-| `width`/`height` | no       | override the role default.                                       |
-| `color`          | no       | override the role color (avoid — color *is* meaning here).       |
-| `fontSize`       | no       | `label` role only.                                               |
+A `frame` has `frameKind`: `scenario`, `conversational`, `context` or `aggregate`.
+Assign non-frame members with `frameId`; dragging a frame moves those members.
+Frames do not nest. A frame is an explicit grouping, not a claim that a boundary
+has been proven. Document supporting rules/evidence. Labels are free annotations.
 
-Keep the JSON valid — a malformed file is ignored until the next good save.
-Don't hand-set `updatedAt`; the server stamps it.
+## Grammar and facilitation
 
----
+| Role | Color | Meaning |
+| --- | --- | --- |
+| event | orange | Business-relevant occurrence in past tense; one idea per sticky |
+| hotspot | red | Uncertainty, disagreement, risk, pain or opportunity |
+| command | blue | Intent in imperative form; may be rejected or produce several events |
+| actor | yellow | Business person/role making a decision or expressing intent |
+| readmodel | green | Information needed to make that decision |
+| policy | purple | Whenever an event occurs, a rule reacts and may issue a command |
+| external | pink | System outside the chosen domain boundary |
+| aggregate | tan | Candidate consistency boundary justified by invariants, not just an entity |
+| label/frame | neutral | Annotation, scenario, repeated activity or candidate boundary |
 
-## 3. The Event Storming grammar (roles, colors, lanes)
+Events can be triggered by people, policies, external occurrences or elapsed
+time. Do not invent a human actor for automation. Name automated behavior as a
+policy or external interaction according to the chosen scope. Don't force a
+one-command/one-event relationship.
 
-Color is meaning. Each role has a fixed color and a **home lane** (a default `y`).
-Place stickies in their lane and the board reads correctly top-to-bottom.
+Layout follows the workshop goal automatically: Big Picture uses a free canvas;
+Process Modelling and Software Design use adaptive role lanes.
+They place unframed cards in expanding role rows, stack overlapping cards without
+changing narrative X, and push later lanes down. Switching to Big Picture restores
+the authored positions. Scenario frames retain internal geometry below the role lanes.
+Exploration starts freely. Later, left-to-right is narrative order, not proof
+of causality or a proportional clock. Use separate frames for alternatives and
+parallel activity. Use conversational frames for repeated/nonsequential behavior,
+and ask which event or condition terminates it. Keep useful spacing without
+restructuring participants' work without agreement.
 
-| role        | color  | meaning                                   | home `y` | text style                          |
-| ----------- | ------ | ----------------------------------------- | -------- | ----------------------------------- |
-| `actor`     | yellow | a person/role who triggers a command      | 92       | the role name ("Customer")          |
-| `command`   | blue   | an intent/action that causes an event     | 200      | imperative ("Place Order")          |
-| `event`     | orange | something that happened — the spine       | 330      | **past tense** ("Order Placed")     |
-| `hotspot`   | red    | problem, risk, conflict, open question    | 338      | a question or pain ("Payment fails?")|
-| `readmodel` | green  | info an actor needs to decide             | 458      | a view ("Cart Summary")             |
-| `policy`    | purple | reactive rule: *whenever X then Y*        | 586      | "Whenever order placed → reserve…"  |
-| `external`  | pink   | system outside the domain                 | 716      | a system name ("Payment Gateway")   |
-| `aggregate` | tan    | the entity that enforces rules            | 568      | a noun ("Order", "Cart")            |
-| `label`     | —      | free heading (bounded-context names etc.) | free     | short title                         |
+## Purpose and steps
 
-**The X axis is time.** Domain events flow left → right in the order they occur.
-Keep a roughly **180–200px horizontal gap** between consecutive events so there's
-room for the commands/actors above and read models/policies below them.
+- **Big Picture:** `chaotic-exploration` → `timeline` → `hotspots` → `closure`.
+  Explore multiple perspectives, pivotal events, chronology, problems and
+  opportunities. Aggregates are not a mandatory outcome.
+- **Process Modelling:** `timeline` → `hotspots` → `commands-actors` →
+  `models-policies` → `closure`. Investigate a selected flow, decisions,
+  normal/alternative/failure scenarios, retries, timeouts and termination.
+- **Software Design:** process steps plus `aggregates` before `closure`.
+  Establish invariants and responsibilities before candidate aggregate and
+  bounded-context boundaries. A bounded context concerns language/model scope;
+  it is not merely a collection of entities.
 
-The browser draws the lanes, the timeline spine, the legend, and a phase-gated
-toolbar automatically from these same definitions (`ROLES` / `LANES` / `PHASES`
-in `app.js`). If you add a new role, update `app.js` too.
+Steps guide the moderator's discussion; participants do not select steps in the UI.
+The phase metadata remains available for compatibility and moderator context, but
+never gates the toolbar. Workshop goals determine the available notation and layout.
+Big Picture offers events, hotspots, annotations and frames. Process Modelling adds
+actors, commands, read models, policies and external systems. Software Design also
+adds aggregates and consistency guidance. Existing cards remain visible in every
+mode. Do not add layout toggles or configuration controls when a goal supplies a
+reasonable default. Notes, export, recovery and new-workshop actions live under
+Workshop options.
 
----
+Finish with prioritized hotspots, decisions and open assumptions. Give each
+important unresolved question an owner and next action. Keep the artifact
+available for follow-up; a full palette is not a success criterion.
 
-## 4. The phase flow
+## Engineering
 
-`board.phase` drives the workshop. Each phase **unlocks the roles the human's
-toolbar can add**, so the method is enforced by the UI. Advance phases
-deliberately, and only when the current one is "full enough."
+- `server.js`: loopback HTTP/SSE, request boundaries, revision-checked commits.
+- `lib/store.js`: validation, atomic persistence, one watcher with polling
+  fallback, last-good recovery and bounded snapshots.
+- `public/model.js`: shared schema, workshop vocabulary and three-way merge.
+- `public/sync.js`: pending drafts, acknowledgements, conflicts, undo and recovery.
+- `public/app.js`: DOM canvas, editor, frames, accessible interaction and lifecycle.
+- `public/layout.js`: derived adaptive lanes; never writes layout changes to the board.
+- `scripts/board.js`: agent/client CLI through the same API.
 
-1. `chaotic-exploration` — diverge on **domain events** (orange), past tense, unordered.
-2. `timeline` — order events left → right; merge duplicates; surface gaps.
-3. `hotspots` — mark problems/questions with **red** hotspots on the timeline.
-4. `commands-actors` — add the **command** (blue) that causes each event and the **actor** (yellow) who issues it.
-5. `models-policies` — add **read models** (green), **policies** (purple, "whenever…"), **external systems** (pink).
-6. `aggregates` — cluster commands+events around **aggregates** (tan); name **bounded contexts** with labels.
-
-When you move the workshop forward, set `board.phase` in the file — the browser's
-phase selector and guidance follow.
-
----
-
-## 5. Your role as moderator
-
-You are the facilitator, not just an editor. Be concise, ask sharp questions, and
-keep the board moving. The participant drives the domain; you structure it.
-
-### Start of every session (no history — always from scratch)
-
-There is **no persisted session**. Do not assume any prior board or conversation.
-At the start of a workshop:
-
-1. **Reset the board** to the clean starter:
-   ```json
-   { "title": "Event Storming", "phase": "chaotic-exploration", "items": [] }
-   ```
-2. Briefly introduce Event Storming (one or two sentences) and **ask what
-   business process or domain we're exploring** (e.g. checkout, onboarding,
-   claims). Set `title` to `Event Storming — <domain>` once you know it.
-3. Begin Phase 1: seed **2–4 example domain events** to model the format, then
-   invite the participant to add more (in the browser or by asking you).
-
-If the user opens with a domain already, skip the question and go straight to
-seeding events.
-
-### While facilitating
-
-- **Edit `board.json` to think out loud on the board.** Add/rename/move stickies,
-  cluster them, drop hotspots where you see risk or ambiguity.
-- **Respect the current phase.** Don't pour in commands/policies during chaotic
-  exploration. Match what you add to `board.phase`, and announce when you advance.
-- **Honor the conventions in §3**: events past tense, commands imperative, one
-  idea per sticky, place each role in its lane, keep the event gap ~180–200px.
-- **Use unique, readable ids** (`evt-12`, `cmd-4`, `pol-2`). Never reuse an id.
-- **Don't clobber the human's work.** Read `board.json` before editing so you
-  build on the latest state (they may have added/moved stickies live). Edit
-  surgically; preserve their items, ids, and positions.
-- **Ask before destructive moves.** Don't wipe or restructure the whole board
-  unless the user asks (resetting at session start is the exception).
-- After a change, tell the user in chat what you did and what to do next ("Added
-  3 events through 'Order Shipped' — what happens if payment fails?").
-
-### Good moderator habits
-
-- Hunt for the edges: failure paths, retries, timeouts, cancellations.
-- Convert vague statements into hotspots ("not sure who approves" → red sticky).
-- When events bunch up or stretch thin, that's a signal — point it out.
-- Keep momentum: small, frequent edits beat one giant rewrite.
+Run `npm run verify` for syntax, model, sync and real HTTP/filesystem tests.
+Browser tests: `npm ci`, `npx playwright install chromium`, `npm run test:browser`.
+Tests use temporary boards; never exercise destructive tests on `board.json`.
+Keep the zero runtime dependency architecture. Dev-only browser tooling is fine.
+Do not expose `.board-history` as static content or commit private snapshots.

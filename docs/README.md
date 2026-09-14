@@ -1,11 +1,8 @@
-# Zasoby dokumentacji
+# Documentation assets
 
-Wrzuć tutaj zrzut ekranu tablicy jako `screenshot.png` — README w katalogu
-głównym wskazuje na `docs/screenshot.png`.
+`board.png` is a historical screenshot of the original teaching prototype.
+The current UI has purpose-specific steps, optional guides, frames, conflict
+resolution and recovery controls; the old screenshot is not a current UI reference.
 
-Jak zrobić dobry zrzut:
-
-1. Uruchom `node server.js` i otwórz `http://localhost:4000`.
-2. Poproś agenta o zamodelowanie przykładowego procesu (np. checkout), żeby
-   tablica miała kilka kolorowych karteczek na różnych pasach.
-3. Zrób zrzut całej tablicy i zapisz go jako `docs/screenshot.png`.
+Generate browser screenshots against a temporary test board, never by resetting
+`board.json`. Playwright artifacts go to the ignored `test-results/` directory.

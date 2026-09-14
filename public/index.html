@@ -10,36 +10,217 @@
     <header class="toolbar">
       <div class="row top">
         <div class="brand">
-          <span class="dot"></span>
-          <div>
-            <h1 id="board-title">Event Storming</h1>
-            <div class="phasebar">
-              <select id="phase" title="Workshop phase"></select>
-              <span id="phase-hint" class="muted"></span>
-            </div>
-          </div>
+          <span class="dot" aria-hidden="true"></span>
+          <h1 id="board-title">Event Storming</h1>
         </div>
         <div class="status">
-          <span id="conn" class="badge">connecting…</span>
-          <span id="saved" class="muted"></span>
-          <button id="delete-btn" disabled>Delete</button>
+          <span id="conn" class="badge" role="status">Connecting…</span
+          ><span id="saved" role="status" aria-live="polite">Loading…</span
+          ><button id="retry" hidden>Retry save</button>
         </div>
       </div>
-      <div class="row tools" id="tools"></div>
+      <div class="row workshop-controls">
+        <label for="purpose">Workshop</label
+        ><select id="purpose" disabled></select>
+        <span id="mode-description" class="muted"></span>
+        <details class="workshop-menu">
+          <summary>Workshop options</summary>
+          <div class="menu-items">
+            <button id="notes-btn" disabled>Workshop notes</button>
+            <button id="export-btn" disabled>Export JSON</button>
+            <button id="history-btn" disabled>Recovery history</button>
+            <button id="new-btn" disabled>New workshop</button>
+          </div>
+        </details>
+      </div>
+      <div class="row tools" id="tools" aria-label="Add a sticky"></div>
+      <div class="row actions">
+        <button id="edit-btn" disabled>Edit selected</button
+        ><button id="delete-btn" disabled>Delete</button>
+        <button id="undo-btn" disabled>Undo</button
+        ><button id="redo-btn" disabled>Redo</button>
+        <button id="zoom-out" aria-label="Zoom out">−</button
+        ><output id="zoom-level">100%</output
+        ><button id="zoom-in" aria-label="Zoom in">+</button
+        ><button id="fit">Fit board</button>
+      </div>
     </header>
-
-    <main id="board" class="board">
-      <div id="lanes" class="lanes"></div>
+    <div id="warning" role="alert" hidden></div>
+    <div id="draft-recovery" hidden>
+      Unsaved changes from this tab are available.
+      <button id="recover-draft">Recover draft</button
+      ><button id="discard-draft">Discard draft</button>
+    </div>
+    <section id="conflicts" aria-label="Competing edits" hidden></section>
+    <main id="board" class="board" aria-label="Workshop canvas" tabindex="0">
+      <section
+        id="welcome"
+        class="welcome"
+        aria-labelledby="welcome-title"
+        hidden
+      >
+        <h2 id="welcome-title">What business process are we exploring?</h2>
+        <p>
+          Start with your domain. Your moderator will guide the discussion,
+          beginning with what happens in the business, one event at a time.
+        </p>
+        <form id="start-form">
+          <label for="start-domain">Business process or domain</label>
+          <input
+            id="start-domain"
+            maxlength="270"
+            required
+            placeholder="For example: checkout, onboarding, claims"
+          />
+          <button type="submit">Start exploration</button>
+        </form>
+        <p class="muted">
+          You can also tell your moderator in chat. The board starts empty;
+          examples are added only after the domain is known.
+        </p>
+      </section>
+      <div id="extent">
+        <div id="surface"><div id="lanes" aria-hidden="true"></div></div>
+      </div>
     </main>
-
     <footer class="hint">
       <div id="legend" class="legend"></div>
-      <div class="method">
-        Drag to place · double-click to edit · Backspace deletes. The AI
-        moderator edits <code>board.json</code> and the board updates live.
-      </div>
+      <p>
+        Tab to select · Enter to edit · Arrow keys to move (Shift: 40 px) ·
+        Shift-click to select several · Drag a frame to move its members ·
+        Escape cancels
+      </p>
     </footer>
-
+    <dialog id="editor" aria-labelledby="editor-title">
+      <form id="edit-form">
+        <h2 id="editor-title">Edit sticky</h2>
+        <label
+          >Text
+          <textarea
+            id="item-text"
+            rows="4"
+            maxlength="4000"
+            required
+          ></textarea>
+        </label>
+        <div class="form-grid">
+          <label
+            >Knowledge status
+            <select id="item-status">
+              <option value="">Unreviewed</option>
+              <option value="suggested">Suggested</option>
+              <option value="confirmed">Confirmed by participants</option>
+            </select></label
+          >
+          <label
+            >Source / contributor <input id="item-source" maxlength="1000"
+          /></label>
+          <label
+            >Frame membership
+            <select id="item-frame"></select
+          ></label>
+          <label
+            >Priority
+            <select id="item-priority">
+              <option value="">Not prioritized</option>
+              <option>high</option>
+              <option>medium</option>
+              <option>low</option>
+            </select></label
+          >
+          <label>Owner <input id="item-owner" maxlength="1000" /></label>
+          <label
+            >Next action <input id="item-nextStep" maxlength="1000"
+          /></label>
+          <label
+            >Invariant / rule that must hold
+            <input id="item-invariant" maxlength="1000"
+          /></label>
+          <label
+            >Loop termination condition
+            <input id="item-termination" maxlength="1000"
+          /></label>
+          <label id="frame-kind-label"
+            >Frame kind
+            <select id="item-frameKind">
+              <option value="scenario">Scenario</option>
+              <option value="conversational">
+                Conversational / repeated activity
+              </option>
+              <option value="context">Candidate bounded context</option>
+              <option value="aggregate">Candidate aggregate boundary</option>
+            </select></label
+          >
+          <label id="frame-width-label"
+            >Frame width
+            <input id="item-width" type="number" min="200" max="10000"
+          /></label>
+          <label id="frame-height-label"
+            >Frame height
+            <input id="item-height" type="number" min="100" max="10000"
+          /></label>
+        </div>
+        <p id="edit-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" id="cancel-edit">Cancel</button
+          ><button type="submit">Save sticky</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="notes-dialog" aria-labelledby="notes-title">
+      <form id="notes-form">
+        <h2 id="notes-title">Workshop notes</h2>
+        <label
+          >Workshop title
+          <input id="workshop-title" maxlength="300" required /></label
+        ><label
+          >Decisions, assumptions, owners and next steps
+          <textarea
+            id="notes-text"
+            rows="14"
+            maxlength="20000"
+            placeholder="Scope and participants:\nDecisions and evidence:\nOpen assumptions:\nPriority / question / owner / next action:"
+          ></textarea>
+        </label>
+        <div class="dialog-actions">
+          <button type="button" id="cancel-notes">Cancel</button
+          ><button type="submit">Save notes</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="history-dialog" aria-labelledby="history-title">
+      <h2 id="history-title">Recovery history</h2>
+      <p>
+        Restore replaces the shared board and archives its current valid state.
+        Export a snapshot to inspect it first.
+      </p>
+      <div id="history-list"></div>
+      <p id="history-error" role="alert"></p>
+      <button id="close-history">Close</button>
+    </dialog>
+    <dialog id="new-dialog" aria-labelledby="new-title">
+      <form id="new-form">
+        <h2 id="new-title">Start a new workshop</h2>
+        <p>
+          The current board will be archived before the new workshop starts.
+        </p>
+        <label
+          >Domain / process
+          <input id="new-domain" maxlength="270" required /></label
+        ><label
+          >Purpose
+          <select id="new-purpose"></select
+        ></label>
+        <p id="new-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" id="cancel-new">Cancel</button
+          ><button type="submit">Archive and start</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="/model.js"></script>
+    <script src="/sync.js"></script>
+    <script src="/layout.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>

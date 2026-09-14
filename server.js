@@ -1,135 +1,247 @@
-// Zero-dependency whiteboard server.
-//
-// board.json is the single source of truth. Two writers touch it:
-//   1. The browser (human) -> POST /api/board
-//   2. An AI agent          -> edits board.json directly on disk
-// fs.watch detects every change and pushes the fresh board to all
-// connected browsers over Server-Sent Events, so the canvas is live.
-
-const http = require("http");
-const fs = require("fs");
-const path = require("path");
-
-const PORT = process.env.PORT || 4000;
-const ROOT = __dirname;
-const PUBLIC = path.join(ROOT, "public");
-const BOARD = path.join(ROOT, "board.json");
-
-const clients = new Set(); // open SSE responses
-
-const MIME = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml",
-};
-
-function readBoard() {
-  try {
-    return fs.readFileSync(BOARD, "utf8");
-  } catch {
-    return JSON.stringify({ title: "Workshop Board", items: [] });
-  }
+// Local workshop server. All live writers use revision-checked HTTP commits.
+const http = require("node:http");
+const fs = require("node:fs");
+const path = require("node:path");
+const { createHash } = require("node:crypto");
+const APP_ID = "event-storming-canvas";
+function boardIdentity(file) {
+  const canonical = path.join(
+    fs.realpathSync(path.dirname(file)),
+    path.basename(file),
+  );
+  return createHash("sha256").update(canonical).digest("hex");
 }
+const { BoardStore, MAX_BYTES } = require("./lib/store");
 
-function broadcast() {
-  const data = readBoard().replace(/\n/g, " ");
-  for (const res of clients) {
-    res.write(`event: board\ndata: ${data}\n\n`);
-  }
-}
-
-// Watch the board file. Editors often replace the file (rename), which can
-// detach a watcher, so we re-arm on every event with a small debounce.
-let watchTimer = null;
-function watchBoard() {
-  try {
-    fs.watch(BOARD, () => {
-      clearTimeout(watchTimer);
-      watchTimer = setTimeout(broadcast, 60);
-    });
-  } catch {
-    // File may be mid-replace; retry shortly.
-    setTimeout(watchBoard, 200);
-  }
-}
-// Re-arm periodically in case the inode was swapped out by an external editor.
-setInterval(watchBoard, 1000);
-watchBoard();
-
-function sendFile(res, filePath) {
-  fs.readFile(filePath, (err, buf) => {
-    if (err) {
-      res.writeHead(404, { "Content-Type": "text/plain" });
-      res.end("Not found");
-      return;
+function createBoardServer({ file = path.join(__dirname, "board.json") } = {}) {
+  const clients = new Set();
+  let store;
+  function broadcast() {
+    if (!store) return;
+    const frame = `event: board\ndata: ${JSON.stringify(store.state())}\n\n`;
+    for (const res of clients) {
+      // A single healthy large board may exceed the stream high-water mark.
+      // Disconnect only clients accumulating several undelivered snapshots.
+      if (res.writableLength > MAX_BYTES * 2) res.destroy();
+      else res.write(frame);
     }
-    res.writeHead(200, { "Content-Type": MIME[path.extname(filePath)] || "application/octet-stream" });
-    res.end(buf);
+  }
+  const identity = boardIdentity(file);
+  const files = {
+    "/": ["index.html", "text/html"],
+    "/app.js": ["app.js", "text/javascript"],
+    "/model.js": ["model.js", "text/javascript"],
+    "/layout.js": ["layout.js", "text/javascript"],
+    "/sync.js": ["sync.js", "text/javascript"],
+    "/style.css": ["style.css", "text/css"],
+  };
+  const json = (res, status, data) => {
+    res.writeHead(status, {
+      "Content-Type": "application/json; charset=utf-8",
+    });
+    res.end(JSON.stringify(data));
+  };
+  const server = http.createServer(async (req, res) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+    );
+    try {
+      const port = server.address().port;
+      const allowedHosts = [
+        `localhost:${port}`,
+        `127.0.0.1:${port}`,
+        `[::1]:${port}`,
+      ];
+      if (!allowedHosts.includes(req.headers.host))
+        return json(res, 403, { error: "Host not allowed" });
+      if (
+        req.headers.origin &&
+        req.headers.origin !== `http://${req.headers.host}`
+      )
+        return json(res, 403, { error: "Origin not allowed" });
+      if (req.headers["sec-fetch-site"] === "cross-site")
+        return json(res, 403, { error: "Cross-site request blocked" });
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      if (req.method === "GET" && url.pathname === "/api/instance")
+        return json(res, 200, { app: APP_ID, board: identity });
+      if (req.method === "GET" && url.pathname === "/api/board") {
+        store.refresh();
+        return json(res, 200, store.state());
+      }
+      if (req.method === "GET" && url.pathname === "/api/history") {
+        const name = url.searchParams.get("name");
+        if (!name) return json(res, 200, store.history());
+        if (!store.history().some((entry) => entry.name === name))
+          return json(res, 404, { error: "Unknown snapshot" });
+        return json(res, 200, store.read(path.join(store.historyDir, name)));
+      }
+      if (req.method === "GET" && url.pathname === "/api/stream") {
+        store.refresh();
+        res.writeHead(200, {
+          "Content-Type": "text/event-stream",
+          Connection: "keep-alive",
+          "X-Accel-Buffering": "no",
+        });
+        res.write(`event: board\ndata: ${JSON.stringify(store.state())}\n\n`);
+        clients.add(res);
+        const ping = setInterval(() => {
+          if (res.writableLength > MAX_BYTES * 2) res.destroy();
+          else res.write(": ping\n\n");
+        }, 25000);
+        res.on("close", () => {
+          clearInterval(ping);
+          clients.delete(res);
+        });
+        return;
+      }
+      if (
+        req.method === "POST" &&
+        ["/api/board", "/api/restore"].includes(url.pathname)
+      ) {
+        if (
+          req.headers["content-type"]?.split(";")[0].trim() !==
+          "application/json"
+        )
+          return json(res, 415, { error: "Use application/json" });
+        if (Number(req.headers["content-length"]) > MAX_BYTES)
+          return json(res, 413, { error: "Request exceeds 2 MiB" });
+        const chunks = [];
+        let size = 0;
+        for await (const chunk of req) {
+          size += chunk.length;
+          if (size > MAX_BYTES) {
+            json(res, 413, { error: "Request exceeds 2 MiB" });
+            return;
+          }
+          chunks.push(chunk);
+        }
+        const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        if (!body || typeof body !== "object")
+          throw new Error("Expected a request object");
+        const state =
+          url.pathname === "/api/restore"
+            ? store.restore(body.name, body.expectedRevision)
+            : store.commit(body.board, body.expectedRevision, {
+                archive: body.archive === true,
+              });
+        return json(res, 200, state);
+      }
+      if (req.method !== "GET")
+        return json(res, 405, { error: "Method not allowed" });
+      if (!Object.hasOwn(files, url.pathname))
+        return json(res, 404, { error: "Not found" });
+      const [name, mime] = files[url.pathname];
+      const content = await fs.promises.readFile(
+        path.join(__dirname, "public", name),
+      );
+      res.writeHead(200, { "Content-Type": `${mime}; charset=utf-8` });
+      res.end(content);
+    } catch (error) {
+      if (!res.headersSent)
+        json(res, error.status || (error.code ? 500 : 400), {
+          error: error.code
+            ? "Storage operation failed; changes were not acknowledged."
+            : error.message,
+          ...(error.status === 409 ? store.state() : {}),
+        });
+      else res.end();
+    }
+  });
+  server.requestTimeout = 15000;
+  server.headersTimeout = 10000;
+  // Reserve the port before touching workshop storage or starting a watcher.
+  server.once("listening", () => {
+    try {
+      store = new BoardStore(file, broadcast);
+    } catch (error) {
+      server.close();
+      server.emit("error", error);
+    }
+  });
+  server.on("close", () => store?.close());
+  return {
+    server,
+    get store() {
+      return store;
+    },
+    async close() {
+      for (const res of clients) res.destroy();
+      await new Promise((resolve) => server.close(resolve));
+    },
+  };
+}
+
+function probeInstance(url) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      req.destroy();
+      resolve(value);
+    };
+    const req = http.get(url + "/api/instance", (res) => {
+      let data = "";
+      res.on("data", (chunk) => {
+        data += chunk;
+        if (data.length > 4096) finish(null);
+      });
+      res.on("end", () => {
+        try {
+          finish(res.statusCode === 200 ? JSON.parse(data) : null);
+        } catch {
+          finish(null);
+        }
+      });
+      res.on("error", () => finish(null));
+    });
+    const timer = setTimeout(() => finish(null), 1500);
+    req.on("error", () => finish(null));
   });
 }
-
-const server = http.createServer((req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = url.pathname;
-
-  // --- Live update stream -------------------------------------------------
-  if (pathname === "/api/stream") {
-    res.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
+async function start({
+  file = path.join(__dirname, "board.json"),
+  port = Number(process.env.PORT || 4000),
+  log = console.log,
+} = {}) {
+  if (!Number.isInteger(port) || port < 0 || port > 65535)
+    throw new Error("PORT must be an integer between 0 and 65535.");
+  const app = createBoardServer({ file });
+  try {
+    await new Promise((resolve, reject) => {
+      app.server.once("error", reject);
+      app.server.listen(port, "127.0.0.1", resolve);
     });
-    res.write(`event: board\ndata: ${readBoard().replace(/\n/g, " ")}\n\n`);
-    clients.add(res);
-    const ping = setInterval(() => res.write(": ping\n\n"), 25000);
-    req.on("close", () => {
-      clearInterval(ping);
-      clients.delete(res);
+  } catch (error) {
+    app.store?.close();
+    if (error.code !== "EADDRINUSE") throw error;
+    const url = `http://127.0.0.1:${port}`;
+    const instance = await probeInstance(url);
+    if (instance?.app === APP_ID && instance.board === boardIdentity(file)) {
+      log(`Workshop board is already running: ${url}`);
+      return null;
+    }
+    throw new Error(
+      `Port ${port} is occupied by ${instance?.app === APP_ID ? "a different workshop" : "another application"}. Stop it or choose a different PORT. Use only one server per board.`,
+    );
+  }
+  log(`Workshop board: http://127.0.0.1:${app.server.address().port}`);
+  return app;
+}
+if (require.main === module) {
+  start()
+    .then((app) => {
+      if (!app) return;
+      for (const signal of ["SIGINT", "SIGTERM"])
+        process.once(signal, () => app.close().then(() => process.exit(0)));
+    })
+    .catch((error) => {
+      console.error(error.message);
+      process.exitCode = 1;
     });
-    return;
-  }
-
-  // --- Read board ---------------------------------------------------------
-  if (pathname === "/api/board" && req.method === "GET") {
-    res.writeHead(200, { "Content-Type": MIME[".json"] });
-    res.end(readBoard());
-    return;
-  }
-
-  // --- Write board (from browser) ----------------------------------------
-  if (pathname === "/api/board" && req.method === "POST") {
-    let body = "";
-    req.on("data", (c) => (body += c));
-    req.on("end", () => {
-      try {
-        const board = JSON.parse(body);
-        board.updatedAt = new Date().toISOString();
-        fs.writeFileSync(BOARD, JSON.stringify(board, null, 2) + "\n");
-        res.writeHead(200, { "Content-Type": MIME[".json"] });
-        res.end(JSON.stringify({ ok: true }));
-        broadcast(); // immediate echo to all clients
-      } catch (e) {
-        res.writeHead(400, { "Content-Type": "text/plain" });
-        res.end("Bad board JSON: " + e.message);
-      }
-    });
-    return;
-  }
-
-  // --- Static files -------------------------------------------------------
-  let file = pathname === "/" ? "/index.html" : pathname;
-  const resolved = path.join(PUBLIC, path.normalize(file));
-  if (!resolved.startsWith(PUBLIC)) {
-    res.writeHead(403);
-    res.end("Forbidden");
-    return;
-  }
-  sendFile(res, resolved);
-});
-
-server.listen(PORT, () => {
-  console.log(`\n  🎨  Workshop whiteboard running at http://localhost:${PORT}`);
-  console.log(`      Editing board.json (by hand or AI) updates the browser live.\n`);
-});
+}
+module.exports = { createBoardServer, start };

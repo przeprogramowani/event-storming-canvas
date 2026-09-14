@@ -1,52 +1,157 @@
 {
-  "title": "Event Storming — Spaced Repetition (Fiszki AI)",
-  "phase": "commands-actors",
+  "title": "Event Storming — Tworzenie i edycja lekcji w szkoleniach",
+  "workshopId": "27cc3b7a-d1b2-48b6-aef3-ed87be6fd78b",
+  "purpose": "process-modelling",
+  "phase": "timeline",
   "items": [
-    { "id": "lbl-1", "role": "label", "text": "① Generowanie fiszek (LLM)", "x": 140, "y": 250, "fontSize": 18 },
-    { "id": "lbl-2", "role": "label", "text": "② Nauka (ts-fsrs) — osobny proces", "x": 1280, "y": 250, "fontSize": 18 },
-    { "id": "lbl-3", "role": "label", "text": "↻ pętla po kartach due", "x": 1470, "y": 152, "fontSize": 13 },
-
-    { "id": "act-1", "role": "actor", "text": "Użytkownik", "x": 140, "y": 92 },
-    { "id": "act-2", "role": "actor", "text": "Użytkownik", "x": 330, "y": 92 },
-    { "id": "act-3", "role": "actor", "text": "Agent LLM", "x": 520, "y": 92 },
-    { "id": "act-4", "role": "actor", "text": "Użytkownik", "x": 710, "y": 92 },
-    { "id": "act-5", "role": "actor", "text": "Użytkownik", "x": 900, "y": 92 },
-    { "id": "act-6", "role": "actor", "text": "Użytkownik", "x": 1280, "y": 92 },
-    { "id": "act-7", "role": "actor", "text": "System", "x": 1470, "y": 92 },
-    { "id": "act-8", "role": "actor", "text": "Użytkownik", "x": 1660, "y": 92 },
-    { "id": "act-9", "role": "actor", "text": "System (FSRS)", "x": 1850, "y": 92 },
-
-    { "id": "cmd-1", "role": "command", "text": "Wgraj dane źródłowe", "x": 140, "y": 200 },
-    { "id": "cmd-2", "role": "command", "text": "Uruchom konwersję", "x": 330, "y": 200 },
-    { "id": "cmd-3", "role": "command", "text": "Wygeneruj i oceń kandydatów", "x": 520, "y": 200 },
-    { "id": "cmd-4", "role": "command", "text": "Przejrzyj kandydatów", "x": 710, "y": 200 },
-    { "id": "cmd-5", "role": "command", "text": "Zaakceptuj kandydata", "x": 900, "y": 200 },
-    { "id": "cmd-6", "role": "command", "text": "Otwórz stronę nauki", "x": 1280, "y": 200 },
-    { "id": "cmd-7", "role": "command", "text": "Pokaż następną fiszkę", "x": 1470, "y": 200 },
-    { "id": "cmd-8", "role": "command", "text": "Oceń odpowiedź (Again/Hard/Good/Easy)", "x": 1660, "y": 200 },
-    { "id": "cmd-9", "role": "command", "text": "Przelicz harmonogram", "x": 1850, "y": 200 },
-
-    { "id": "evt-1", "role": "event", "text": "Dane źródłowe wgrane", "x": 140, "y": 330 },
-    { "id": "evt-2", "role": "event", "text": "Konwersja LLM uruchomiona", "x": 330, "y": 330 },
-    { "id": "evt-13", "role": "event", "text": "Konwersja nieudana", "x": 330, "y": 430 },
-    { "id": "evt-3", "role": "event", "text": "Fiszki-kandydaci wygenerowani", "x": 520, "y": 330 },
-    { "id": "evt-4", "role": "event", "text": "Kandydaci przejrzani", "x": 710, "y": 330 },
-    { "id": "evt-5", "role": "event", "text": "Kandydat zaakceptowany", "x": 900, "y": 330 },
-    { "id": "cmd-10", "role": "command", "text": "Odrzuć kandydata", "x": 700, "y": 430 },
-    { "id": "evt-6", "role": "event", "text": "Kandydat odrzucony", "x": 900, "y": 430 },
-    { "id": "evt-7", "role": "event", "text": "Fiszka dodana do talii", "x": 1090, "y": 330 },
-    { "id": "cmd-11", "role": "command", "text": "Edytuj fiszkę", "x": 1280, "y": 430 },
-    { "id": "evt-14", "role": "event", "text": "Fiszka zedytowana", "x": 1090, "y": 430 },
-
-    { "id": "evt-15", "role": "event", "text": "Karty do nauki wybrane", "x": 1280, "y": 330 },
-    { "id": "evt-9", "role": "event", "text": "Fiszka pokazana", "x": 1470, "y": 330 },
-    { "id": "evt-10", "role": "event", "text": "Odpowiedź oceniona", "x": 1660, "y": 330 },
-    { "id": "evt-11", "role": "event", "text": "Powtórka przeliczona (FSRS)", "x": 1850, "y": 330 },
-    { "id": "evt-12", "role": "event", "text": "Nauka na dziś ukończona", "x": 2040, "y": 330 },
-
-    { "id": "hot-1", "role": "hotspot", "text": "Judge ocenia jakość bez ground truth — względem czego?", "x": 470, "y": 540 },
-    { "id": "hot-2", "role": "hotspot", "text": "User akceptuje fiszkę merytorycznie błędną (halucynacja przeszła judge'a)", "x": 870, "y": 540 },
-    { "id": "hot-3", "role": "hotspot", "text": "Kiedy nowa fiszka jest pierwszy raz 'due'? Stan początkowy FSRS = ?", "x": 1180, "y": 540 },
-    { "id": "hot-4", "role": "hotspot", "text": "Selekcja = stan w bazie; docelowo inny model wyboru?", "x": 1280, "y": 640 }
-  ]
+    {
+      "id": "cmd-tworzenie-lekcji",
+      "role": "command",
+      "text": "tworzenie lekcji (kliknięcie „nowa lekcja”)",
+      "x": 160,
+      "y": 200
+    },
+    {
+      "id": "cmd-wpisywanie-tresci",
+      "role": "command",
+      "text": "wpisywanie treści",
+      "x": 320,
+      "y": 200
+    },
+    {
+      "id": "cmd-edycja-tresci",
+      "role": "command",
+      "text": "edycja treści",
+      "x": 480,
+      "y": 200
+    },
+    {
+      "id": "evt-lekcja-zapisana",
+      "role": "event",
+      "text": "lekcja zapisana",
+      "x": 640,
+      "y": 340
+    },
+    {
+      "id": "evt-lekcja-opublikowana",
+      "role": "event",
+      "text": "lekcja opublikowana",
+      "x": 800,
+      "y": 340
+    },
+    {
+      "id": "evt-lekcja-opublikowana-blokada",
+      "role": "event",
+      "text": "lekcja opublikowana ale z blokadą",
+      "x": 960,
+      "y": 340
+    },
+    {
+      "id": "evt-lekcja-usunieta",
+      "role": "event",
+      "text": "lekcja usunięta",
+      "x": 1120,
+      "y": 340
+    },
+    {
+      "id": "hot-edycja-opublikowanej",
+      "role": "hotspot",
+      "text": "Czy „edycja treści” dotyczy też lekcji już opublikowanej? Co wtedy widzi student?",
+      "x": 480,
+      "y": 480,
+      "status": "suggested",
+      "source": "AI"
+    },
+    {
+      "id": "act-moderator",
+      "role": "actor",
+      "text": "Moderator szkolenia",
+      "x": 160,
+      "y": 60
+    },
+    {
+      "id": "hot-co-udostepnia",
+      "role": "hotspot",
+      "text": "Co przenosi lekcję z „published but not yet accessible” do stanu dostępnego dla studenta?",
+      "x": 1000,
+      "y": 480,
+      "status": "suggested",
+      "source": "AI"
+    },
+    {
+      "id": "cmd-zapis-lekcji",
+      "role": "command",
+      "text": "zapis lekcji (na żądanie moderatora)",
+      "x": 600,
+      "y": 200
+    },
+    {
+      "id": "cmd-publikacja-lekcji",
+      "role": "command",
+      "text": "publikacja lekcji (osobna akcja, nie zapis)",
+      "x": 760,
+      "y": 200
+    },
+    {
+      "id": "hot-kiedy-blokada",
+      "role": "hotspot",
+      "text": "Sprzeczność do rozstrzygnięcia: czy „published but not yet accessible” powstaje przy zapisie, czy przy publikacji?",
+      "x": 860,
+      "y": 480,
+      "status": "suggested",
+      "source": "AI"
+    },
+    {
+      "id": "evt-lekcja-utworzona",
+      "role": "event",
+      "text": "Lekcja utworzona przez moderatora (pusty draft)",
+      "x": 280,
+      "y": 340
+    },
+    {
+      "id": "rm-kto-utworzyl",
+      "role": "readmodel",
+      "text": "Kto i kiedy utworzył lekcję (rejestr autorstwa)",
+      "x": 280,
+      "y": 760,
+      "status": "suggested",
+      "source": "AI"
+    },
+    {
+      "id": "hot-rejestr-czy-istnieje",
+      "role": "hotspot",
+      "text": "Rejestr autorstwa to życzenie („chciałbym”), nie stan obecny. Czy to nowa funkcja, czy już działa?",
+      "x": 420,
+      "y": 480,
+      "status": "suggested",
+      "source": "AI"
+    },
+    {
+      "id": "rm-feed-aktywnosci",
+      "role": "readmodel",
+      "text": "Feed aktywności we wszystkich szkoleniach",
+      "x": 600,
+      "y": 760
+    },
+    {
+      "id": "hot-draft-tryb-przypuszczajacy",
+      "role": "hotspot",
+      "text": "„draft powinien powstać przy kliknięciu” — powinien czy powstaje? Tryb przypuszczający, stan obecny nieznany.",
+      "x": 280,
+      "y": 480,
+      "status": "suggested",
+      "source": "AI"
+    },
+    {
+      "id": "hot-feed-zakres",
+      "role": "hotspot",
+      "text": "Które zdarzenia trafiają do feedu i kto go widzi? Feed czyta wszystkie szkolenia — potencjalny wyciek między szkoleniami.",
+      "x": 600,
+      "y": 480,
+      "status": "suggested",
+      "source": "AI"
+    }
+  ],
+  "notes": "CEL WARSZTATU: ograniczyć bugi i regresje w procesie tworzenia i edycji lekcji.\nZAKRES (wybrany przez uczestnika): tworzenie i edycja lekcji w szkoleniach.\n\nWKŁAD UCZESTNIKA (runda 1, słowa oryginalne, kolejność podana przez uczestnika):\ntworzenie lekcji / wpisywanie treści / edycja treści / lekcja zapisana / lekcja usunięta /\nlekcja opublikowana / lekcja opublikowana ale z blokadą\n\nUWAGA O STATUSACH: kartki uczestnika nie mają statusu = nieprzejrzane, nie potwierdzone.\nPrzypisanie ról (command vs event) jest propozycją moderatora i NIE zostało potwierdzone.\nTrzy hotspoty są oznaczone jako suggested/AI — to pytania moderatora, nie ustalenia uczestnika.\n\nWKŁAD UCZESTNIKA (runda 2):\n- Aktor: rola moderatora szkolenia. Hotspot o braku aktora zamknięty.\n- Zapis treści przenosi lekcję z draft do „published but not yet accessible”.\n  To odpowiedź na to, co USTAWIA blokadę. Nie wiadomo, co ją ZDEJMUJE.\n  Reguła zapisana jako fioletowa polityka ze statusem suggested/AI — sformułowanie moje,\n  uczestnik potwierdził zachowanie, nie brzmienie kartki.\n\nWKŁAD UCZESTNIKA (runda 3) — KOREKTA:\n- Zapis lekcji odbywa się na żądanie. Publikacja to zupełnie osobna akcja, nie to samo kliknięcie.\n- Hipoteza moderatora „zapis = publikacja” była BŁĘDNA. Polityka pol-zapis-publikuje usunięta z tablicy.\n- Pozostaje nierozstrzygnięta sprzeczność z rundą 2, gdzie padło, że to zapis treści przenosi\n  lekcję z draft do „published but not yet accessible”. Zapisana jako hotspot, nie rozstrzygnięta.\n\nWKŁAD UCZESTNIKA (runda 4):\n- Uczestnik chce rejestrować tworzenie lekcji przez konkretnych moderatorów szkoleń.\n- Sformułowane jako życzenie („chciałbym”), więc traktowane jako intencja [ma być], NIE jako\n  opis stanu obecnego. Nie zakładać, że rejestr autorstwa już istnieje w systemie.\n- Test reakcji/rozmowy wypada pozytywnie, więc „Lekcja utworzona” zasługuje na kartkę zdarzenia.\n- Test nr 2 (kiedy powstaje rekord drafta) pozostaje bez odpowiedzi.\n\nWKŁAD UCZESTNIKA (runda 5):\n- Draft POWINIEN powstawać przy kliknięciu „nowa lekcja”, z pustą treścią.\n  Znowu tryb przypuszczający — to projekt docelowy, nie potwierdzony stan obecny.\n- Uzasadnienie: feed aktywności obejmujący wszystkie szkolenia w systemie.\n- Feed jest konsumentem zdarzeń: to on nadaje sens kartkom zdarzeń na tej tablicy.\n\nOTWARTE PYTANIA (bez odpowiedzi):\n- Czy proces już działa w kodzie, czy jest projektowany? Pytanie zadane, brak odpowiedzi.\n- Co uruchamia proces i co uznajemy za koniec?\n- Co udostępnia lekcję studentowi? Kluczowe, wciąż bez odpowiedzi.\n- Przy której akcji powstaje stan „published but not yet accessible”: przy zapisie czy przy publikacji?\n- Brak ścieżek błędu: nieudany zapis, odrzucona publikacja, konflikt równoległej edycji.\n- „lekcja opublikowana ale z blokadą” zawiera dwie myśli — czy rozbić na dwie kartki?\n- Kolejność na osi X jest wstępna, nie została potwierdzona jako przebieg narracyjny.\n\nUSTALENIA: brak potwierdzonych ustaleń.",
+  "updatedAt": "2026-09-14T14:17:56.398Z"
 }

@@ -8,3 +8,9 @@
 # Logs
 *.log
 npm-debug.log*
+
+# Local workshop recovery (may contain private domain information)
+.board-history/
+node_modules/
+test-results/
+playwright-report/

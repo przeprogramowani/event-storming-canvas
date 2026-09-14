@@ -1,0 +1,52 @@
+{
+  "title": "Event Storming — Spaced Repetition (Fiszki AI)",
+  "phase": "commands-actors",
+  "items": [
+    { "id": "lbl-1", "role": "label", "text": "① Generowanie fiszek (LLM)", "x": 140, "y": 250, "fontSize": 18 },
+    { "id": "lbl-2", "role": "label", "text": "② Nauka (ts-fsrs) — osobny proces", "x": 1280, "y": 250, "fontSize": 18 },
+    { "id": "lbl-3", "role": "label", "text": "↻ pętla po kartach due", "x": 1470, "y": 152, "fontSize": 13 },
+
+    { "id": "act-1", "role": "actor", "text": "Użytkownik", "x": 140, "y": 92 },
+    { "id": "act-2", "role": "actor", "text": "Użytkownik", "x": 330, "y": 92 },
+    { "id": "act-3", "role": "actor", "text": "Agent LLM", "x": 520, "y": 92 },
+    { "id": "act-4", "role": "actor", "text": "Użytkownik", "x": 710, "y": 92 },
+    { "id": "act-5", "role": "actor", "text": "Użytkownik", "x": 900, "y": 92 },
+    { "id": "act-6", "role": "actor", "text": "Użytkownik", "x": 1280, "y": 92 },
+    { "id": "act-7", "role": "actor", "text": "System", "x": 1470, "y": 92 },
+    { "id": "act-8", "role": "actor", "text": "Użytkownik", "x": 1660, "y": 92 },
+    { "id": "act-9", "role": "actor", "text": "System (FSRS)", "x": 1850, "y": 92 },
+
+    { "id": "cmd-1", "role": "command", "text": "Wgraj dane źródłowe", "x": 140, "y": 200 },
+    { "id": "cmd-2", "role": "command", "text": "Uruchom konwersję", "x": 330, "y": 200 },
+    { "id": "cmd-3", "role": "command", "text": "Wygeneruj i oceń kandydatów", "x": 520, "y": 200 },
+    { "id": "cmd-4", "role": "command", "text": "Przejrzyj kandydatów", "x": 710, "y": 200 },
+    { "id": "cmd-5", "role": "command", "text": "Zaakceptuj kandydata", "x": 900, "y": 200 },
+    { "id": "cmd-6", "role": "command", "text": "Otwórz stronę nauki", "x": 1280, "y": 200 },
+    { "id": "cmd-7", "role": "command", "text": "Pokaż następną fiszkę", "x": 1470, "y": 200 },
+    { "id": "cmd-8", "role": "command", "text": "Oceń odpowiedź (Again/Hard/Good/Easy)", "x": 1660, "y": 200 },
+    { "id": "cmd-9", "role": "command", "text": "Przelicz harmonogram", "x": 1850, "y": 200 },
+
+    { "id": "evt-1", "role": "event", "text": "Dane źródłowe wgrane", "x": 140, "y": 330 },
+    { "id": "evt-2", "role": "event", "text": "Konwersja LLM uruchomiona", "x": 330, "y": 330 },
+    { "id": "evt-13", "role": "event", "text": "Konwersja nieudana", "x": 330, "y": 430 },
+    { "id": "evt-3", "role": "event", "text": "Fiszki-kandydaci wygenerowani", "x": 520, "y": 330 },
+    { "id": "evt-4", "role": "event", "text": "Kandydaci przejrzani", "x": 710, "y": 330 },
+    { "id": "evt-5", "role": "event", "text": "Kandydat zaakceptowany", "x": 900, "y": 330 },
+    { "id": "cmd-10", "role": "command", "text": "Odrzuć kandydata", "x": 700, "y": 430 },
+    { "id": "evt-6", "role": "event", "text": "Kandydat odrzucony", "x": 900, "y": 430 },
+    { "id": "evt-7", "role": "event", "text": "Fiszka dodana do talii", "x": 1090, "y": 330 },
+    { "id": "cmd-11", "role": "command", "text": "Edytuj fiszkę", "x": 1280, "y": 430 },
+    { "id": "evt-14", "role": "event", "text": "Fiszka zedytowana", "x": 1090, "y": 430 },
+
+    { "id": "evt-15", "role": "event", "text": "Karty do nauki wybrane", "x": 1280, "y": 330 },
+    { "id": "evt-9", "role": "event", "text": "Fiszka pokazana", "x": 1470, "y": 330 },
+    { "id": "evt-10", "role": "event", "text": "Odpowiedź oceniona", "x": 1660, "y": 330 },
+    { "id": "evt-11", "role": "event", "text": "Powtórka przeliczona (FSRS)", "x": 1850, "y": 330 },
+    { "id": "evt-12", "role": "event", "text": "Nauka na dziś ukończona", "x": 2040, "y": 330 },
+
+    { "id": "hot-1", "role": "hotspot", "text": "Judge ocenia jakość bez ground truth — względem czego?", "x": 470, "y": 540 },
+    { "id": "hot-2", "role": "hotspot", "text": "User akceptuje fiszkę merytorycznie błędną (halucynacja przeszła judge'a)", "x": 870, "y": 540 },
+    { "id": "hot-3", "role": "hotspot", "text": "Kiedy nowa fiszka jest pierwszy raz 'due'? Stan początkowy FSRS = ?", "x": 1180, "y": 540 },
+    { "id": "hot-4", "role": "hotspot", "text": "Selekcja = stan w bazie; docelowo inny model wyboru?", "x": 1280, "y": 640 }
+  ]
+}
